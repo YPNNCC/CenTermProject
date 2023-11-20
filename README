@@ -1,5 +1,19 @@
-Readme
-Our project is a dashboard that allows the user to do various tasks and help manage and automate their farms. The user will be able to add buildings, crop, etc. the user will be able to see their crops name, price and location. They will be able to set automated tasks such as watering their crops. The dashboard will give the user a visualization of their farm and all the items in it.  They will be able to scan and add new buildings and remove old buildings.
-This project is being maintain by Jonathan Howard, Nicholas Chlumsky, and Lee Bernard.
+### README
 
-https://github.com/YPNNCC/CenTermProject
+#### Overview
+Our project introduces a user-friendly dashboard designed for efficient farm management and automation.
+
+#### Features
+- **Farm Layout Management:** Users can add or remove structures like buildings and crops.
+- **Visualization:** A clear and detailed visualization of the entire farm layout, including all items and structures.
+- **Crop Management:** View important details of crops such as names, prices, and locations.
+- **Dynamic Interaction:** Users can scan their farm environment, adding new buildings and removing outdated ones.
+
+#### Developers
+This project is maintained by Jonathan Howard, Nicholas Chlumsky, and Lee Bernard.
+
+#### Access the Project
+The project can be accessed and run directly from the provided `.exe` file for ease of use. The project can also be run and edited in debug mode.
+
+#### Repository
+Explore more about the project on our GitHub: [CenTermProject](https://github.com/YPNNCC/CenTermProject)
