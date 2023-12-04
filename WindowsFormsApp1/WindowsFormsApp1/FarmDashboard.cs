@@ -1,14 +1,7 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
-using System.Runtime.Remoting.Messaging;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace WindowsFormsApp1
@@ -27,13 +20,13 @@ namespace WindowsFormsApp1
 
             var barnNode = rootNode.CreateChild("Barn", NodeType.ItemContainer, new Point(50, 275), new Size(500, 300), 50000);
             var livestockAreaNode = barnNode.CreateChild("Live-stock Area", NodeType.ItemContainer, new Point(20, 20), new Size(150, 100), 20000);
-            var cowNode = livestockAreaNode.CreateChild("Cow", NodeType.Item, new Point(35, 20), new Size(40, 25), 1500);
-            var milkStorageNode = barnNode.CreateChild("Milk-storage", NodeType.Item, new Point(20, 250), new Size(150, 50), 10000);
+            livestockAreaNode.CreateChild("Cow", NodeType.Item, new Point(35, 20), new Size(40, 25), 1500, 3000);
+            barnNode.CreateChild("Milk-storage", NodeType.Item, new Point(20, 250), new Size(150, 50), 10000, 20000);
 
             var commandCenterNode = rootNode.CreateChild("Command-center", NodeType.ItemContainer, new Point(50, 50), new Size(200, 150), 30000);
-            var droneNode = commandCenterNode.CreateChild("Drone", NodeType.Item, new Point(25, 25), new Size(50, 50), 1500);
+            commandCenterNode.CreateChild("Drone", NodeType.Item, new Point(25, 25), new Size(50, 50), 1500, 3000);
 
-            var cropNode = rootNode.CreateChild("Crop", NodeType.Item, new Point(600, 300), new Size(150, 250), 30000);
+            rootNode.CreateChild("Crop", NodeType.Item, new Point(600, 300), new Size(150, 250), 30000, 60000);
 
             treeView1.Nodes.Add(rootNode);
             treeView1.Invalidate();
@@ -47,37 +40,35 @@ namespace WindowsFormsApp1
             visualization_panel.Invalidate();
             visualization_panel.Refresh();
         }
-        private void label1_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void label1_Click_1(object sender, EventArgs e)
-        {
-        }
 
         private void button4_Click(object sender, EventArgs e)
         {
-            if (treeView1.SelectedNode is CustomTreeNode selectedNode)
-            {
-                using (var form = new ChangeDimensionsForm(selectedNode.Size))
-                {
-                    var result = form.ShowDialog();
+            if (!(treeView1.SelectedNode is CustomTreeNode selectedNode)) return;
 
-                    if (result == DialogResult.OK)
-                    {
-                        selectedNode.Size = form.NewSize;
-                        treeView1.Refresh();
-                        treeView1.ExpandAll();
-                        visualization_panel.Refresh();
-                    }
-                }
+            using (var form = new ChangeDimensionsForm(selectedNode.Size))
+            {
+                var result = form.ShowDialog();
+
+                if (result != DialogResult.OK) return;
+
+                selectedNode.Size = form.NewSize;
+                treeView1.Refresh();
+                treeView1.ExpandAll();
+                visualization_panel.Refresh();
             }
+        }
+
+        private static decimal GetPriceOfAllChildren(CustomTreeNode node)
+        {
+            return node.Price + node.Nodes.Cast<CustomTreeNode>().Sum(GetPriceOfAllChildren);
         }
 
         private void treeView1_AfterSelect_2(object sender, TreeViewEventArgs e)
         {
+            if (!(treeView1.SelectedNode is CustomTreeNode selectedNode)) return;
 
+            purchase_price_label.Text = $"Purchase Price: {GetPriceOfAllChildren(selectedNode)}";
+            market_price_label.Text = $"Market Value: {(selectedNode.Type == NodeType.Item ? selectedNode.MarketValue.ToString() : "N/A")}";
         }
 
         private void DrawVisualization(Graphics graphics)
@@ -90,7 +81,7 @@ namespace WindowsFormsApp1
             }
         }
 
-        private void DrawNode(Graphics graphics, CustomTreeNode node)
+        private static void DrawNode(Graphics graphics, CustomTreeNode node)
         {
             var rect = new Rectangle(node.Location, node.Size);
             graphics.DrawRectangle(Pens.Black, rect);
@@ -113,71 +104,61 @@ namespace WindowsFormsApp1
 
         private void DeleteCompButtonClick(object sender, EventArgs e)
         {
-            if (treeView1.SelectedNode is CustomTreeNode selectedNode)
+            if (!(treeView1.SelectedNode is CustomTreeNode selectedNode)) return;
+
+            selectedNode.Remove();
+            treeView1.Refresh();
+            treeView1.ExpandAll();
+            visualization_panel.Refresh();
+        }
+
+        private void RenameItemButtonClick(object sender, EventArgs e)
+        {
+            if (!(treeView1.SelectedNode is CustomTreeNode selectedNode)) return;
+
+            using (var form = new RenameForm(selectedNode.Text))
             {
-                selectedNode.Remove();
+                var result = form.ShowDialog();
+
+                if (result != DialogResult.OK) return;
+
+                selectedNode.Text = form.NewName;
                 treeView1.Refresh();
                 treeView1.ExpandAll();
                 visualization_panel.Refresh();
             }
         }
 
-        private void label2_Click_1(object sender, EventArgs e)
-        {
-
-        }
-
-        private void RenameItemButtonClick(object sender, EventArgs e)
-        {
-            if (treeView1.SelectedNode is CustomTreeNode selectedNode)
-            {
-                using (var form = new RenameForm(selectedNode.Text))
-                {
-                    var result = form.ShowDialog();
-
-                    if (result == DialogResult.OK)
-                    {
-                        selectedNode.Text = form.NewName;
-                        treeView1.Refresh();
-                        treeView1.ExpandAll();
-                        visualization_panel.Refresh();
-                    }
-                }
-            }
-        }
-
         private void ChangeItemLocationButtonClick(object sender, EventArgs e)
         {
-            if (treeView1.SelectedNode is CustomTreeNode selectedNode)
-            {
-                using (var form = new ChangeLocationForm(selectedNode.Location))
-                {
-                    var result = form.ShowDialog();
+            if (!(treeView1.SelectedNode is CustomTreeNode selectedNode)) return;
 
-                    if (result == DialogResult.OK)
-                    {
-                        selectedNode.Location = form.NewLocation;
-                        treeView1.Refresh();
-                        treeView1.ExpandAll();
-                        visualization_panel.Refresh();
-                    }
-                }
+            using (var form = new ChangeLocationForm(selectedNode.Location))
+            {
+                var result = form.ShowDialog();
+
+                if (result != DialogResult.OK) return;
+
+                selectedNode.Location = form.NewLocation;
+                treeView1.Refresh();
+                treeView1.ExpandAll();
+                visualization_panel.Refresh();
             }
         }
 
         public class ChangeDimensionsForm : BaseForm
         {
-            private TextBox textBoxX;
-            private TextBox textBoxY;
-            private Label labelX;
-            private Label labelY;
+            private TextBox _textBoxX;
+            private TextBox _textBoxY;
+            private Label _labelX;
+            private Label _labelY;
 
             public Size NewSize { get; private set; }
 
             public ChangeDimensionsForm(Size currentSize)
             {
-                textBoxX.Text = currentSize.Width.ToString();
-                textBoxY.Text = currentSize.Height.ToString();
+                _textBoxX.Text = currentSize.Width.ToString();
+                _textBoxY.Text = currentSize.Height.ToString();
             }
 
             protected override void InitializeComponent()
@@ -185,44 +166,44 @@ namespace WindowsFormsApp1
                 base.InitializeComponent();
                 Text = "Change Dimensions";
 
-                labelX = new Label();
-                labelY = new Label();
-                textBoxX = new TextBox();
-                textBoxY = new TextBox();
+                _labelX = new Label();
+                _labelY = new Label();
+                _textBoxX = new TextBox();
+                _textBoxY = new TextBox();
 
                 // Label for X
-                labelX.Text = "Width:";
-                labelX.Location = new Point(10, 10);
-                labelX.Size = new Size(50, 20);
+                _labelX.Text = "Width:";
+                _labelX.Location = new Point(10, 10);
+                _labelX.Size = new Size(50, 20);
 
                 // TextBox for X
-                textBoxX.Location = new Point(70, 10);
-                textBoxX.Size = new Size(100, 20);
+                _textBoxX.Location = new Point(70, 10);
+                _textBoxX.Size = new Size(100, 20);
 
                 // Label for Y
-                labelY.Text = "Height:";
-                labelY.Location = new Point(200, 10);
-                labelY.Size = new Size(50, 20);
+                _labelY.Text = "Height:";
+                _labelY.Location = new Point(200, 10);
+                _labelY.Size = new Size(50, 20);
 
                 // TextBox for Y
-                textBoxY.Location = new Point(280, 10);
-                textBoxY.Size = new Size(100, 20);
+                _textBoxY.Location = new Point(280, 10);
+                _textBoxY.Size = new Size(100, 20);
 
-                btnOK.Location = new Point(50, 80);
-                btnCancel.Location = new Point(160, 80);
+                BtnOk.Location = new Point(50, 80);
+                BtnCancel.Location = new Point(160, 80);
 
-                Controls.Add(labelX);
-                Controls.Add(textBoxX);
-                Controls.Add(labelY);
-                Controls.Add(textBoxY);
+                Controls.Add(_labelX);
+                Controls.Add(_textBoxX);
+                Controls.Add(_labelY);
+                Controls.Add(_textBoxY);
             }
 
             protected override void btnOK_Click(object sender, EventArgs e)
             {
                 base.btnOK_Click(sender, e);
 
-                int.TryParse(textBoxX.Text, out int width);
-                int.TryParse(textBoxY.Text, out int height);
+                int.TryParse(_textBoxX.Text, out int width);
+                int.TryParse(_textBoxY.Text, out int height);
                 NewSize = new Size(width, height);
             }
         }
@@ -272,8 +253,8 @@ namespace WindowsFormsApp1
                 textBoxY.Location = new Point(180, 10);
                 textBoxY.Size = new Size(100, 20);
 
-                btnOK.Location = new Point(50, 80);
-                btnCancel.Location = new Point(160, 80);
+                BtnOk.Location = new Point(50, 80);
+                BtnCancel.Location = new Point(160, 80);
 
                 Controls.Add(labelX);
                 Controls.Add(textBoxX);
@@ -356,32 +337,32 @@ namespace WindowsFormsApp1
 
         public class BaseForm : Form
         {
-            public Button btnOK;
-            public Button btnCancel;
+            protected Button BtnOk;
+            protected Button BtnCancel;
 
-            public BaseForm()
+            protected BaseForm()
             {
                 InitializeComponent();
             }
 
             protected virtual void InitializeComponent()
             {
-                btnOK = new Button();
-                btnCancel = new Button();
+                BtnOk = new Button();
+                BtnCancel = new Button();
 
-                btnOK.Text = "OK";
-                btnOK.DialogResult = DialogResult.OK;
-                btnOK.Location = new Point(50, 50);
-                btnOK.Size = new Size(100, 30);
+                BtnOk.Text = "OK";
+                BtnOk.DialogResult = DialogResult.OK;
+                BtnOk.Location = new Point(50, 50);
+                BtnOk.Size = new Size(100, 30);
 
-                btnCancel.Text = "Cancel";
-                btnCancel.DialogResult = DialogResult.Cancel;
-                btnCancel.Location = new Point(160, 50);
-                btnCancel.Size = new Size(100, 30);
+                BtnCancel.Text = "Cancel";
+                BtnCancel.DialogResult = DialogResult.Cancel;
+                BtnCancel.Location = new Point(160, 50);
+                BtnCancel.Size = new Size(100, 30);
 
                 // Form
-                AcceptButton = btnOK;
-                CancelButton = btnCancel;
+                AcceptButton = BtnOk;
+                CancelButton = BtnCancel;
                 StartPosition = FormStartPosition.CenterParent;
                 Size = new Size(300, 150);
                 MinimumSize = new Size(500, 150);
@@ -389,11 +370,11 @@ namespace WindowsFormsApp1
                 MaximizeBox = false;
                 MinimizeBox = false;
 
-                Controls.Add(btnOK);
-                Controls.Add(btnCancel);
+                Controls.Add(BtnOk);
+                Controls.Add(BtnCancel);
 
-                btnOK.Click += btnOK_Click;
-                btnCancel.Click += btnCancel_Click;
+                BtnOk.Click += btnOK_Click;
+                BtnCancel.Click += btnCancel_Click;
             }
 
             protected virtual void btnOK_Click(object sender, EventArgs e)
@@ -409,8 +390,8 @@ namespace WindowsFormsApp1
             {
                 if (disposing)
                 {
-                    btnOK?.Dispose();
-                    btnCancel?.Dispose();
+                    BtnOk?.Dispose();
+                    BtnCancel?.Dispose();
                 }
 
                 base.Dispose(disposing);
@@ -419,20 +400,18 @@ namespace WindowsFormsApp1
 
         private void change_price_button_Click(object sender, EventArgs e)
         {
-            if (treeView1.SelectedNode is CustomTreeNode selectedNode)
-            {
-                using (var form = new ChangePriceForm(selectedNode.Price))
-                {
-                    var result = form.ShowDialog();
+            if (!(treeView1.SelectedNode is CustomTreeNode selectedNode)) return;
 
-                    if (result == DialogResult.OK)
-                    {
-                        selectedNode.Price = form.NewPrice;
-                        treeView1.Refresh();
-                        treeView1.ExpandAll();
-                        visualization_panel.Refresh();
-                    }
-                }
+            using (var form = new ChangePriceForm(selectedNode.Price))
+            {
+                var result = form.ShowDialog();
+
+                if (result != DialogResult.OK) return;
+
+                selectedNode.Price = form.NewPrice;
+                treeView1.Refresh();
+                treeView1.ExpandAll();
+                visualization_panel.Refresh();
             }
         }
 
@@ -450,7 +429,8 @@ namespace WindowsFormsApp1
         {
             if (!(treeView1.SelectedNode is CustomTreeNode selectedNode)) return;
 
-            var newPrice = 0m;
+            decimal newPrice;
+            decimal marketPrice;
             var newName = "New Item";
             if (type == NodeType.ItemContainer) newName = "New Item Container";
             var newLocation = new Point(0, 0);
@@ -459,53 +439,51 @@ namespace WindowsFormsApp1
             using (var form = new ChangePriceForm(0))
             {
                 var result = form.ShowDialog();
-                if (result == DialogResult.OK) newPrice = form.NewPrice;
-                if (result == DialogResult.Cancel) return;
+                if (result != DialogResult.OK) return;
+                newPrice = form.NewPrice;
+            }
+
+            using (var form = new ChangePriceForm(0))
+            {
+                form.Text = "Change Market Price";
+                var result = form.ShowDialog();
+                if (result != DialogResult.OK) return;
+                marketPrice = form.NewPrice;
             }
 
             using (var form = new RenameForm(newName))
             {
                 var result = form.ShowDialog();
-                if (result == DialogResult.OK) newName = form.NewName;
-                if (result == DialogResult.Cancel) return;
+                if (result != DialogResult.OK) return;
+                newName = form.NewName;
             }
 
             using (var form = new ChangeLocationForm(newLocation))
             {
                 var result = form.ShowDialog();
-                if (result == DialogResult.OK) newLocation = form.NewLocation;
-                if (result == DialogResult.Cancel) return;
+                if (result != DialogResult.OK) return;
+                newLocation = form.NewLocation;
             }
 
             using (var form = new ChangeDimensionsForm(newSize))
             {
                 var result = form.ShowDialog();
-                if (result == DialogResult.OK) newSize = form.NewSize;
-                if (result == DialogResult.Cancel) return;
+                if (result != DialogResult.OK) return;
+                newSize = form.NewSize;
             }
 
-            selectedNode.CreateChild(newName, type, newLocation, newSize, newPrice);
+            selectedNode.CreateChild(newName, type, newLocation, newSize, newPrice, marketPrice);
             treeView1.Refresh();
             treeView1.ExpandAll();
             visualization_panel.Refresh();
         }
 
-        private void label4_Click_1(object sender, EventArgs e)
-        {
-
-        }
-
-        private void label3_Click_1(object sender, EventArgs e)
-        {
-
-        }
-
-        private Queue<CustomTreeNode> nodesToVisit = new Queue<CustomTreeNode>();
-        private Timer movementTimer;
-        private Point droneStartPosition;
-        private Point droneEndPosition;
-        private int animationSteps = 10;
-        private int currentStep = 0;
+        private readonly Queue<CustomTreeNode> _nodesToVisit = new Queue<CustomTreeNode>();
+        private Timer _movementTimer;
+        private Point _droneStartPosition;
+        private Point _droneEndPosition;
+        private const int AnimationSteps = 10;
+        private int _currentStep;
 
         private void visit_item_button_Click(object sender, EventArgs e)
         {
@@ -523,9 +501,9 @@ namespace WindowsFormsApp1
                 return;
             }
 
-            droneEndPosition = selectedNode.Location;
-            droneEndPosition.X += selectedNode.Size.Width / 2 - drone.Size.Width / 2;
-            droneEndPosition.Y += selectedNode.Size.Height / 2 - drone.Size.Height / 2;
+            _droneEndPosition = selectedNode.Location;
+            _droneEndPosition.X += selectedNode.Size.Width / 2 - drone.Size.Width / 2;
+            _droneEndPosition.Y += selectedNode.Size.Height / 2 - drone.Size.Height / 2;
 
             MoveDroneTo(drone);
 
@@ -533,26 +511,26 @@ namespace WindowsFormsApp1
 
         private void MoveDroneTo(CustomTreeNode drone)
         {
-            if (movementTimer == null)
+            if (_movementTimer == null)
             {
-                movementTimer = new Timer();
-                movementTimer.Interval = 100;
-                movementTimer.Tick += movementTimer_Tick;
+                _movementTimer = new Timer();
+                _movementTimer.Interval = 100;
+                _movementTimer.Tick += movementTimer_Tick;
             }
 
-            droneStartPosition = drone.Location;
-            currentStep = 0;
-            movementTimer.Start();
+            _droneStartPosition = drone.Location;
+            _currentStep = 0;
+            _movementTimer.Start();
         }
 
-        private List<TreeNode> GetAllNodes(TreeNodeCollection nodes)
+        private static List<TreeNode> GetAllNodes(TreeNodeCollection nodes)
         {
-            List<TreeNode> allNodes = new List<TreeNode>();
+            var allNodes = new List<TreeNode>();
 
             foreach (TreeNode node in nodes)
             {
-                allNodes.Add(node); // Add the current node
-                allNodes.AddRange(GetAllNodes(node.Nodes)); // Recursively add child nodes
+                allNodes.Add(node);
+                allNodes.AddRange(GetAllNodes(node.Nodes));
             }
 
             return allNodes;
@@ -560,33 +538,30 @@ namespace WindowsFormsApp1
 
         private void movementTimer_Tick(object sender, EventArgs e)
         {
-            currentStep++;
+            _currentStep++;
 
-            if (currentStep <= animationSteps)
+            if (_currentStep <= AnimationSteps)
             {
-                float xIncrement = (droneEndPosition.X - droneStartPosition.X) / (float)animationSteps;
-                float yIncrement = (droneEndPosition.Y - droneStartPosition.Y) / (float)animationSteps;
+                var xIncrement = (_droneEndPosition.X - _droneStartPosition.X) / (float)AnimationSteps;
+                var yIncrement = (_droneEndPosition.Y - _droneStartPosition.Y) / (float)AnimationSteps;
 
                 var drone = GetAllNodes(treeView1.Nodes).Find(v => v.Text.Contains("Drone")) as CustomTreeNode;
                 if (drone == default) return;
 
                 var nextPosition = new Point(
-                    droneStartPosition.X + (int)(xIncrement * currentStep),
-                    droneStartPosition.Y + (int)(yIncrement * currentStep));
+                    _droneStartPosition.X + (int)(xIncrement * _currentStep),
+                    _droneStartPosition.Y + (int)(yIncrement * _currentStep));
 
                 drone.Location = nextPosition;
 
                 visualization_panel.Invalidate();
                 visualization_panel.Refresh();
+                return;
             }
-            else
-            {
-                movementTimer.Stop();
-                if (nodesToVisit.Count > 0)
-                {
-                    VisitNextItem();
-                }
-            }
+
+            _movementTimer.Stop();
+            if (_nodesToVisit.Count <= 0) return;
+            VisitNextItem();
         }
 
         private void scan_farm_button_Click(object sender, EventArgs e)
@@ -602,26 +577,44 @@ namespace WindowsFormsApp1
                 .OfType<CustomTreeNode>()
                 .Where(node => !node.Text.Contains("Drone"));
 
-            foreach (var node in allNodes)
-            {
-                nodesToVisit.Enqueue(node);
-            }
-
+            foreach (var node in allNodes) _nodesToVisit.Enqueue(node);
             VisitNextItem();
         }
 
         private void VisitNextItem()
         {
-            if (nodesToVisit.Count <= 0) return;
+            if (_nodesToVisit.Count <= 0) return;
 
-            var drone = GetAllNodes(treeView1.Nodes).Find(v => v.Text.Contains("Drone")) as CustomTreeNode;
-            if (drone == default) return;
+            if (!(GetAllNodes(treeView1.Nodes).Find(v => v.Text.Contains("Drone")) is CustomTreeNode drone)) return;
 
-            var nextItem = nodesToVisit.Dequeue();
-            droneEndPosition = nextItem.Location;
-            droneEndPosition.X += nextItem.Size.Width / 2 - drone.Size.Width / 2;
-            droneEndPosition.Y += nextItem.Size.Height / 2 - drone.Size.Width / 2;
+            var nextItem = _nodesToVisit.Dequeue();
+            _droneEndPosition = nextItem.Location;
+            _droneEndPosition.X += nextItem.Size.Width / 2 - drone.Size.Width / 2;
+            _droneEndPosition.Y += nextItem.Size.Height / 2 - drone.Size.Width / 2;
             MoveDroneTo(drone);
+        }
+
+        private void change_market_value_button_Click(object sender, EventArgs e)
+        {
+            if (!(treeView1.SelectedNode is CustomTreeNode selectedNode)) return;
+            if (selectedNode.Type != NodeType.Item) return;
+
+            using (var form = new ChangePriceForm(selectedNode.MarketValue))
+            {
+                form.Text = "Change Market Price";
+                var result = form.ShowDialog();
+
+                if (result != DialogResult.OK) return;
+
+                selectedNode.MarketValue = form.NewPrice;
+
+                purchase_price_label.Text = $"Purchase Price: {GetPriceOfAllChildren(selectedNode)}";
+                market_price_label.Text = $"Market Value: {selectedNode.MarketValue}";
+
+                treeView1.Refresh();
+                treeView1.ExpandAll();
+                visualization_panel.Refresh();
+            }
         }
     }
 }
